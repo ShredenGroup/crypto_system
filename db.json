@@ -1,0 +1,113 @@
+{
+    "basic_setting": {
+        "log_hidden": 0,
+        "position_to_balance": 0.2,
+        "pair": "BTCUSDT",
+        "livetrade": false
+    },
+    "cerebro": {
+        "init_cash": 10000,
+        "curr_strategy": "newbollinger",
+        "mult_strategies": "bollinger,macd",
+        "commission": 0.0001,
+        "position_to_balance": 1,
+        "leverage": 5,
+        "setlog": 1
+    },
+    "data": {
+        "pairs": {
+            "BTCUSDT": {
+                "start_time": "20230601",
+                "end_time": "20250801",
+                "interval": "1m"
+            },
+            "ETHUSDT": {
+                "start_time": "20201010",
+                "end_time": "20241202",
+                "interval": "1d"
+            },
+            "DOGEUSDT": {
+                "start_time": "20211108",
+                "end_time": "20241201",
+                "interval": "1m"
+            },
+            "TRUMPUSDT": {
+                "start_time": "20250118",
+                "end_time": "20250119",
+                "interval": "1m"
+            }
+        }
+    },
+    "strategy": {
+        "turtle": {
+            "opt_param": true,
+            "parameters": {
+                "open_period": {
+                    "start": 20,
+                    "end": 25,
+                    "step": 1
+                },
+                "close_period": {
+                    "start": 10,
+                    "end": 15,
+                    "step": 1
+                }
+            }
+        },
+        "macda": {
+            "opt_param": true,
+            "parameters": {
+                "fast": {
+                    "start": 10,
+                    "end": 14,
+                    "step": 2
+                },
+                "slow": {
+                    "start": 24,
+                    "end": 28,
+                    "step": 2
+                },
+                "signal": {
+                    "start": 8,
+                    "end": 10,
+                    "step": 1
+                }
+            }
+        },
+        "macd": {
+            "opt_param": true,
+            "parameters": {
+                "volume_percent": {
+                    "start": 0.1,
+                    "end": 0.6,
+                    "step": 0.1
+                },
+                "moving_period": {
+                    "start": 10,
+                    "end": 20,
+                    "step": 1
+                },
+                "tb_period": {
+                    "start": 20,
+                    "end": 30,
+                    "step": 1
+                }
+            }
+        },
+        "bollinger": {
+            "opt_param": true,
+            "parameters": {
+                "period": {
+                    "start": 18,
+                    "end": 22,
+                    "step": 2
+                },
+                "devfac": {
+                    "start": 1.8,
+                    "end": 2.2,
+                    "step": 0.2
+                }
+            }
+        }
+    }
+}
