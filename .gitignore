@@ -6,3 +6,4 @@ user.cfg
 **/*.log
 **/*.db
 .env
+**/*.sql
