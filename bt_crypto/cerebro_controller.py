@@ -7,6 +7,8 @@ from datetime import datetime
 from .utils import load_configs
 from .db import DataBase
 from .logger import Logger
+import pandas as pd
+
 class CerebroController():
     def __init__(self,db):
         self.config=Config()
@@ -20,15 +22,16 @@ class CerebroController():
         cerebro.addanalyzer(bt.analyzers.DrawDown, _name='drawdown')
         cerebro.addanalyzer(bt.analyzers.SharpeRatio, _name='sharpe')
         return cerebro
-    def single_strategy_runner(self,curr_strategy=None):
-        cerebro=self.cerebro_init()
-        data=self._get_trading_data()
+    def single_strategy_runner(self, curr_strategy=None):
+        cerebro = self.cerebro_init()
+        data = self._get_trading_data()
         cerebro.adddata(data)
-        str_strategy=self.bt_config.get_cerebro_config()['curr_strategy']
-        strategy=get_strategy(curr_strategy or str_strategy)
-        base_strategy_params=self.bt_config.get_basic_setting()
-        cerebro.addstrategy(strategy,**base_strategy_params)
-        cerebro.run()
+        str_strategy = self.bt_config.get_cerebro_config()['curr_strategy']
+        strategy = get_strategy(curr_strategy or str_strategy)
+        base_strategy_params = self.bt_config.get_basic_setting()
+        cerebro.addstrategy(strategy, **base_strategy_params)
+        # 运行策略
+        results = cerebro.run()
     def multiple_strategy_runner(self,multi_strategies:List[str]=None):
         strategy_list:[str]=multi_strategies or self.bt_config.get_cerebro_config()['mult_strategies'].strip().split(',')
         base_strategy_params:Dict=self.bt_config.get_basic_setting()
@@ -83,33 +86,78 @@ class CerebroController():
                     base_strategy_params=self.bt_config.get_basic_setting()
                     opt_strategy=cerebro.optstrategy(strategy_module,**param,**base_strategy_params) 
                     results=cerebro.run(maxcpu=1)  
-    def single_strategy_opt(self,curr_strategy=None):
-        cerebro=self.cerebro_init()
-        data=self._get_trading_data()
+    def single_strategy_opt(self, curr_strategy=None):
+        cerebro = self.cerebro_init()
+        data = self._get_trading_data()
         cerebro.adddata(data)
-        str_strategy=self.bt_config.get_cerebro_config()['curr_strategy']
-        strategy=get_strategy(curr_strategy or str_strategy)
-        strategy_info=self.bt_config.get_strategy_config(str_strategy)
-        base_strategy_params=self.bt_config.get_basic_setting()
-        param=self._create_strategy_params(strategy_info)
-        cerebro.optstrategy(strategy,**param,**base_strategy_params)
-        cerebro.run(maxcpu=1)
+        str_strategy = self.bt_config.get_cerebro_config()['curr_strategy']
+        strategy = get_strategy(curr_strategy or str_strategy)
+        strategy_info = self.bt_config.get_strategy_config(str_strategy)
+        base_strategy_params = self.bt_config.get_basic_setting()
+        base_strategy_params['livetrade'] = False
+        param = self._create_strategy_params(strategy_info)
+        
+        # 添加分析器
+        cerebro.addanalyzer(bt.analyzers.Returns, _name='returns')
+        
+        cerebro.optstrategy(strategy, **param, **base_strategy_params)
+        results = cerebro.run(maxcpu=32)
+        
+        # 收集所有结果
+        all_results = []
+        for opt_result in results:
+            strat = opt_result[0]  # OptReturn 对象
+            print(strat.params.period)
+             
+            # 获取优化参数
+            params = {k: v for k, v in strat.params._getkwargs().items() 
+                    if k in ['period', 'h', 'mult']}  # 只获取优化的参数
+            
+            # 获取分析器结果
+            returns = strat.analyzers.returns.get_analysis()
+            
+            result_dict = {
+                **params,
+                'return': returns.get('rtot', 0.0)  # 总收益率
+            }
+            all_results.append(result_dict)
+        
+        # 转换为DataFrame并排序
+        df = pd.DataFrame(all_results)
+        df = df.sort_values('return', ascending=False)
+        
+        # 格式化收益率为百分比
+        df['return'] = df['return'].apply(lambda x: f'{x:.2%}')
+        
+        # 保存结果
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f'optimization_results_{str_strategy}_{timestamp}.csv'
+        df.to_csv(filename, index=False)
+        
+        # 打印前10个最佳结果
+        print("\n=== Top 10 优化结果 ===")
+        print(df.head(10).to_string())
+        print(f"\n完整结果已保存到: {filename}")
+        
+        return df
     def _create_strategy_params(self, strategy_info):
         params = {}
         for param_name, param_config in strategy_info['parameters'].items():
-            if isinstance(param_config['start'], float):
-                # 对于浮点数，创建一个浮点数序列
-                values = []
-                current = param_config['start']
-                while current <= param_config['end']:
-                    values.append(current)
-                    current += param_config['step']
-                params[param_name] = tuple(values)
-            else:
-                # 对于整数，使用 range
-                params[param_name] = range(
-                    param_config['start'],
-                    param_config['end'] + param_config['step'],
-                    param_config['step']
-                )
+            start = param_config['start']
+            end = param_config['end']
+            step = param_config['step']
+            
+            # 添加调试信息
+            print(f"Creating parameter range for {param_name}:")
+            print(f"start: {start}, end: {end}, step: {step}")
+            
+            values = []
+            current = start
+            while current <= end:
+                values.append(current)
+                current += step
+            
+            params[param_name] = tuple(values)
+            print(f"Generated values for {param_name}: {params[param_name]}")
+        
         return params

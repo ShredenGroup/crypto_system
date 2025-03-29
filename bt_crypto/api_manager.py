@@ -21,31 +21,106 @@ class ApiManager():
     def get_kline(self,symbol:str,interval:str,start_time:str=None,end_time:str=None)->pd.DataFrame:	
         start_ms=None
         end_ms=None
+        
+        # 定义时间间隔对应的分钟数
+        interval_minutes = {
+            '1m': 1,
+            '3m': 3,
+            '5m': 5,
+            '15m': 15,
+            '30m': 30,
+            '1h': 60,
+            '2h': 120,
+            '4h': 240,
+            '6h': 360,
+            '8h': 480,
+            '12h': 720,
+            '1d': 1440,
+            '3d': 4320,
+            '1w': 10080,
+        }
+        
+        # 转换时间格式
         if start_time:
             if not self.bt_config.get_basic_setting()['livetrade']:
                 start_ms=int(datetime.strptime(start_time,"%Y%m%d").timestamp()*1000)
             else:
                 current_ms=int(datetime.utcnow().timestamp()*1000)
-                time_multiplier=1
-                if self.bt_config.get_pair_config(symbol)['interval']=='5m':
-                    time_multiplier=5
-                if self.bt_config.get_pair_config(symbol)['interval']=='1d':
-                    time_multiplier=1440
-                if self.bt_config.get_pair_config(symbol)['interval']=='1h':
-                    time_multiplier=60
-                if self.bt_config.get_pair_config(symbol)['interval']=='4h':
-                    time_multiplier=240
+                time_multiplier={
+                    '5m': 5,
+                    '1d': 1440,
+                    '1h': 60,
+                    '4h': 240
+                }.get(self.bt_config.get_pair_config(symbol)['interval'], 1)
                 start_ms=int((datetime.utcnow()-timedelta(minutes=40*time_multiplier)).timestamp()*1000)
         if end_time:
             if not self.bt_config.get_basic_setting()['livetrade']:
                 end_ms=int(datetime.strptime(end_time,"%Y%m%d").timestamp()*1000)
-        result=self.client.klines(symbol=symbol,
-        interval=interval,
-        startTime=start_ms if start_time is not None else None,
-        endTime=end_ms if end_time is not None else None,
-        limit=1500)
-        df=pd.DataFrame(result)
-        df=df.iloc[:,0:6]
+        
+        # 如果没有指定结束时间，使用当前时间
+        if end_ms is None:
+            end_ms = int(datetime.utcnow().timestamp() * 1000)
+        
+        # 存储所有数据的列表
+        all_klines = []
+        current_start = start_ms
+        
+        # 获取interval对应的分钟数
+        minutes = interval_minutes.get(interval)
+        if not minutes:
+            raise ValueError(f"Unsupported interval: {interval}")
+        
+        # 转换为毫秒
+        interval_ms = minutes * 60 * 1000
+        
+        # 循环获取数据，每次最多1500条
+        while current_start is None or current_start < end_ms:
+            # 计算本次请求的结束时间（取当前批次能获取的结束时间和总结束时间的较小值）
+            batch_end = min(current_start + (interval_ms * 1500), end_ms)
+            
+            self.logger.info(
+                f"正在获取 {symbol} {interval} K线数据 | " +
+                f"批次时间范围: {datetime.fromtimestamp(current_start/1000).strftime('%Y-%m-%d %H:%M:%S')} -> " +
+                f"{datetime.fromtimestamp(batch_end/1000).strftime('%Y-%m-%d %H:%M:%S')} | " +
+                f"总时间范围: {datetime.fromtimestamp(start_ms/1000).strftime('%Y-%m-%d %H:%M:%S')} -> " +
+                f"{datetime.fromtimestamp(end_ms/1000).strftime('%Y-%m-%d %H:%M:%S')}"
+            )
+            
+            result = self.client.klines(
+                symbol=symbol,
+                interval=interval,
+                startTime=current_start,
+                endTime=end_ms,
+                limit=1500
+            )
+            
+            if not result:
+                self.logger.warning(f"{symbol} 在指定时间段内没有数据")
+                break
+            
+            all_klines.extend(result)
+            
+            # 更新开始时间为最后一条数据的时间加一个interval
+            current_start = result[-1][0] + interval_ms
+            self.logger.info(
+                f"进度更新: 本批次获取 {len(result)} 条数据 | " +
+                f"已完成: {len(all_klines)} 条 | " +
+                f"当前处理至: {datetime.fromtimestamp(result[-1][0]/1000).strftime('%Y-%m-%d %H:%M:%S')}"
+            )
+        
+        self.logger.info(
+            f"{symbol} {interval} K线数据获取完成 | " +
+            f"总数据量: {len(all_klines)} 条 | " +
+            f"时间范围: {datetime.fromtimestamp(start_ms/1000).strftime('%Y-%m-%d %H:%M:%S')} -> " +
+            f"{datetime.fromtimestamp(end_ms/1000).strftime('%Y-%m-%d %H:%M:%S')}"
+        )
+        
+        # 转换为DataFrame
+        if not all_klines:
+            return pd.DataFrame()
+        
+        df = pd.DataFrame(all_klines)
+        df = df.iloc[:,0:6]
         df[0]=pd.to_datetime(df[0],unit='ms')
         for col in [1,2,3,4,5]:
             df[col]=df[col].astype(float)

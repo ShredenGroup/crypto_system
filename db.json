@@ -1,13 +1,13 @@
 {
     "basic_setting": {
-        "log_hidden": 0,
+        "log_hidden": 1,
         "position_to_balance": 0.2,
         "pair": "BTCUSDT",
         "livetrade": false
     },
     "cerebro": {
         "init_cash": 10000,
-        "curr_strategy": "newbollinger",
+        "curr_strategy": "NW",
         "mult_strategies": "bollinger,macd",
         "commission": 0.0001,
         "position_to_balance": 1,
@@ -17,9 +17,9 @@
     "data": {
         "pairs": {
             "BTCUSDT": {
-                "start_time": "20230601",
-                "end_time": "20250801",
-                "interval": "1m"
+                "start_time": "20240101",
+                "end_time": "20250327",
+                "interval": "1h"
             },
             "ETHUSDT": {
                 "start_time": "20201010",
@@ -106,6 +106,31 @@
                     "start": 1.8,
                     "end": 2.2,
                     "step": 0.2
+                }
+            }
+        },
+        "NW": {
+            "opt_param": true,
+            "parameters": {
+                "period": {
+                    "start": 15,
+                    "end": 25,
+                    "step": 5
+                },
+                "h": {
+                    "start": 5.0,
+                    "end": 10.0,
+                    "step": 1
+                },
+                "mult": {
+                    "start": 2.0,
+                    "end": 4.0,
+                    "step": 1
+                },
+                "profit_pct": {
+                    "start": 0.001,
+                    "end": 0.005,
+                    "step": 0.001
                 }
             }
         }

@@ -35,8 +35,14 @@ class BaseStrategy(bt.Strategy):
         self.trade_logger=Logger(f'live_trading:{self.__module__}')
         self.db_logger=Logger('database')
         self.bt_logger=Logger('backtest')
-        self.db=DataBase(self.db_logger)
-        self.client=ApiManager(config,self.db)
+        self.analyzers.sharpe = bt.analyzers.SharpeRatio(
+            timeframe=bt.TimeFrame.Days,  # 使用日度数据计算
+            riskfreerate=0.01,  # 无风险利率设为1%
+            annualize=True,  # 年化结果
+        )
+        if self.p.livetrade:
+            self.db=DataBase(self.db_logger)
+            self.client=ApiManager(config,self.db)
     def log(self,txt,dt=None):
         dt=dt or self.datetime.date(0)
         print(f'{dt.isoformat()}:{txt}')

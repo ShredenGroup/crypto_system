@@ -71,3 +71,4 @@ if __name__=="__main__":
     db.create_database()
     db.add_coin('DOGEUSDT')
     db.get_live_orders()
+

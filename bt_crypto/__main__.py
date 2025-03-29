@@ -28,8 +28,8 @@ def main():
                 logger.error(f"An eror occurred:{e}")
                 time.sleep(5) 
     else:
-            cerebro_core.single_strategy_runner()
-            
+            #cerebro_core.single_strategy_opt()
+            cerebro_core.single_strategy_runner() 
     #cerebro_core.multiple_strategy_runner()
     #client=ApiManager(config)
     #client.place_order('DOGEUSDT',Side.BUY,order_type='MARKET',quantity=12)
