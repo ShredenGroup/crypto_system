@@ -7,3 +7,4 @@ env
 .env
 **/*.sql
 ./bt_crypto/strategies/cookie_strategy.py
+./mao
