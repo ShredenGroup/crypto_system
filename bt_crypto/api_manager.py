@@ -120,11 +120,13 @@ class ApiManager():
             return pd.DataFrame()
         
         df = pd.DataFrame(all_klines)
-        df = df.iloc[:,0:6]
+        df = df.iloc[:,[0,1,2,3,4,5,7,8,9,10]]
+        print(df.head())
         df[0]=pd.to_datetime(df[0],unit='ms')
-        for col in [1,2,3,4,5]:
+        for col in [1,2,3,4,5,7,8,9,10]:
             df[col]=df[col].astype(float)
-        df=df.rename(columns={0:"datetime",1:"open",2:"high",3:"low",4:"close",5:"volume"}).set_index('datetime')
+        df=df.rename(columns={0:"datetime",1:"open",2:"high",3:"low",4:"close",5:"volume",7:"quote_volume",8:"count",9:"taker_buy_volume",10:"taker_buy_quote_volume"}).set_index('datetime')
+        print(df.head())
         return df
     def place_order(self,symbol:str,side:Side,order_type:str,quantity:float,price:float=None,**args)->str:
         order_params={
@@ -311,7 +313,7 @@ if __name__=='__main__':
     logger=Logger('database')
     db=DataBase(logger)
     client=ApiManager(config,db)
-    client.order_chaser(4000)
+    klines=client.get_kline(symbol='DOGEUSDT',interval='1m',start_time='20250424',end_time='20250425')
     #client.close_certain_position('DOGEUSDT')
     #client.place_order(symbol='DOGEUSDT',side=Side.SELL,order_type='LIMIT',
     #                   quantity=18,price =1,timeInForce='GTC')

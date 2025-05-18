@@ -1,5 +1,4 @@
 env
-user.cfg
 .idea
 *.swp
 **/__pycache__/
@@ -7,3 +6,4 @@ user.cfg
 **/*.db
 .env
 **/*.sql
+./bt_crypto/strategies/cookie_strategy.py
