@@ -23,12 +23,11 @@ class BaseStrategy(bt.Strategy):
         ('livetrade',False)
     )
     def __init__(self):
-        bt.Strategy.__init__(self)
         config=Config()
         self.volume=self.data.volume
         self.close_price=self.data.close
         self.open_price=self.data.open
-        self.high_price=self.data.high
+        self.high_price=self.data_high
         self.low_price=self.data.low
         self.init_cash=None
         self.trading_signal:Dict=None
